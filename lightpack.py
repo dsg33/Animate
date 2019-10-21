@@ -103,8 +103,8 @@ class lightpack:
             self.getLeds()
             return 0
         except:
-            print 'Lightpack API server is missing'
-            print sys.exc_info()[0]
+            print('Lightpack API server is missing')
+            print(sys.exc_info()[0])
             return -1
         
     def setColor(self, n, r, g, b):     # Set color to the define LED        
@@ -188,4 +188,3 @@ class lightpack:
     def disconnect(self):
         self.unlock()
         self.connection.close()
-        

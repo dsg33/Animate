@@ -1,12 +1,51 @@
 import math
 import random
 import lightpack
-import ConfigParser
+import ConfigParser as configparser
 import os
 import threading
 import time
+lits = [0, 4, 8, 13, 17, 21, 25, 30, 34, 38, 42, 47, 51, 55, 59, 64, 68, 72, 76,81, 85, 89, 93, 98, 102, 106, 110, 115, 119, 123, 127, 132, 136, 140, 144,149, 153, 157, 161, 166, 170, 174, 178, 183, 187, 191, 195, 200, 204, 208,212, 217, 221, 225, 229, 234, 238, 242, 246, 251, 255]
+#miami colors
+miamicolors=[[0, 0, 153],[70,0,70],[102, 0, 102],[200,200,200],[11,211,211]]
+pittcolors=[[0,20,148],[255,184,28]]
+alert=[[255,0,0],[0,0,0],[0,0,0],[255,0,0],[0,0,0],[0,0,0],[255,0,0],[0,0,0],[0,0,0]]
+rainbow=[]
+for k in range(0,359):
+    if (k%5==0):
+        if k < 60:
+            rainbow.append([255,lits[k],0])
+        elif k<120:
+            rainbow.append([lits[120-k],255,0])
+        elif k<180:
+            rainbow.append([0,255,lits[k-120]])
+        elif k<240:
+            rainbow.append([0,lits[240-k],255])
+        elif k<300:
+            rainbow.append([lits[k-240],0,255])
+        else:
+            rainbow.append([255,0,lits[360-k]])
+for k in range(0,359):
+    if (k%5==0):
+        if k < 60:
+            rainbow.append([255,lits[k],0])
+        elif k<120:
+            rainbow.append([lits[120-k],255,0])
+        elif k<180:
+            rainbow.append([0,255,lits[k-120]])
+        elif k<240:
+            rainbow.append([0,lits[240-k],255])
+        elif k<300:
+            rainbow.append([lits[k-240],0,255])
+        else:
+            rainbow.append([255,0,lits[360-k]])
+strobe=[[0,0,0],[255,255,255]]
+cus = [[0,0,0]]
 
+colors=[miamicolors,pittcolors,alert,rainbow]
+colorsname = ['Maimi','Pitt','Alert','Custom','rainbow']
 class Animate:
+    
     def __init__(self):
         self.loadConfig()
         self.ConnectToLightpack()
@@ -17,17 +56,31 @@ class Animate:
             1: self.Animation1,
             2: self.Animation2,
             3: self.SnakeAnimation,
-            4: self.CylonAnimation
+            4: self.CylonAnimation,
+            5: self.MiamiAnimation,
+            6: self.strobe
         }
         self.i = 0 #init animation index
         random.seed()
-        print 'init'
+        print ('init')
         
     def loadConfig(self):
-        self.scriptDir = os.path.dirname(os.path.realpath(__file__))
-        self.config = ConfigParser.ConfigParser()
+        self.scriptDir = os.path.dirname(os.path.abspath(__file__))
+        self.config = configparser.ConfigParser()
         self.config.read(self.scriptDir + '/Animate.ini')
-        self.animType = self.config.getint('Animation', 'type')
+        self.animType = int(input('Animation Number: '))
+        if self.animType == 5:
+            print(colorsname)
+            self.colorP = int(input('Pallete Number: '))
+            if self.colorP==4:
+                r = int(input('Red Value: '))
+                g = int(input('Green Value: '))
+                b = int(input('Blue Value: '))
+                cus[0]=[r,g,b]
+        elif self.animType ==6:
+        	self.strobeS = int(input ('Strobe speed: '))
+        #self.animType = self.config.getint('Animation', 'type')
+        
         
     def ConnectToLightpack(self):
         try:
@@ -50,7 +103,7 @@ class Animate:
             while True:
                 self.animFunctions[self.animType]()
                 time.sleep(self.animInterval)
-            print 'run'
+            print ('run')
         
     def stop(self):
         self.timeranim.stop()
@@ -63,21 +116,21 @@ class Animate:
             self.cylonMap = []
             for group in ledGroups:
                 self.cylonMap.append([int(n) for n in group.split(',')])
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             self.cylonMap = [ [1,2,3], [4,5], [6,7], [8,9,10] ]
         
     def getLedMap(self):
         try:
             map = self.config.get('Lightpack', 'ledmap')
             self.ledMap = [int(n) for n in map.split(',')]
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             self.ledMap = self.defaultMap()
 
     def defaultMap(self):
         try:
             leds = self.lpack.getCountLeds()
             map = [n for n in range (1, leds+1)]
-        except Exception, e:
+        except Exception as e:
             print(str(e))
             map = [1,2,3,4,5,6,7,8,9,10]
         return map
@@ -94,7 +147,7 @@ class Animate:
                 self.lastFrame[self.ledMap[k]-1]=[r,g,b]
             self.lpack.setFrame(self.lastFrame)
             self.i += 1
-        except Exception, e:
+        except Exception as e:
             print(str(e))
 
     def Animation2(self):
@@ -118,7 +171,7 @@ class Animate:
             self.lpack.setFrame(newFrame)
             self.lastFrame = newFrame
             self.i += 1
-        except Exception, e:
+        except Exception as e:
             print(str(e))
 
     def SnakeAnimation(self):
@@ -143,20 +196,42 @@ class Animate:
                     self.lastFrame[i-1]=[0,0,0]
         self.lpack.setFrame(self.lastFrame)
         self.i += 1
+    def MiamiAnimation(self):
+        numC=len(colors[self.colorP])
+        for k in range (0, self.ledsCount) :    
+            idx = (self.i+k) % self.ledsCount
+            cRange= self.ledsCount/numC
+            for j in range(0,numC) :
+                if (k/cRange)==j :
+                    self.lastFrame[self.ledMap[idx]-1]=colors[self.colorP][j]
+        self.lpack.setFrame(self.lastFrame)
+        self.i += 1
+    def strobe(self):
+        for k in range (0, self.ledsCount) :
+            idx = (self.i+k) % self.ledsCount
+            if (self.i % 2) == 0:
+                self.lastFrame[self.ledMap[idx]-1]=[0,0,0]
+            else:
+                self.lastFrame[self.ledMap[idx]-1]=[255,255,255]
+        self.lpack.setFrame(self.lastFrame)
+        self.i += 1
 
     def onAnimationChange(self):
         self.ledsCount = int(self.lpack.getCountLeds())
         self.lastFrame=[ [0,0,0] for k in range(0, self.ledsCount)]
         if self.animType == 1: #Animation1
-            self.animInterval = 0.07
+            self.animInterval = 0.025
             self.i=self.ledsCount*2 + random.randrange(20000)
 
         elif self.animType == 2: #Animation2
             self.animInterval = 0.2
 
         elif self.animType == 3: #SnakeAnimation
-            self.animInterval = 0.2
-
+            self.animInterval = 0.07
+        elif self.animType == 5: #SnakeAnimation
+            self.animInterval = 0.05
+        elif self.animType == 6: #SnakeAnimation
+            self.animInterval = self.strobeS
         elif self.animType == 4: #CylonAnimation
             self.animInterval = 0.2
             self.cylonWidth = len(self.cylonMap)
